@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Conda / virtualenv
+.conda/
+.venv/
+venv/
+env/
+
+# Data
+data/
+
+# Result images
+*.png
+
+# Claude Code local config
+.claude/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Third-party libraries (clone from upstream separately)
+J-PCMCIplus/
+dagma/
+golem/
+nas/darts/
