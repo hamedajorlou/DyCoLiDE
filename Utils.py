@@ -96,139 +96,6 @@ def _structure_to_adjacency(
     return adj, nodes
 
 
-def simulate_svar(
-    n_obs: int,
-    n_vars: int,
-    lag_order: int,
-    burn_in: int = 250,
-    stability_radius: float = 0.95,
-    shock_scale: float = 1.0,
-    seed: Optional[int] = None,
-    structure: Optional[object] = None,
-    node_order: Optional[Sequence] = None,
-) -> Dict[str, object]:
-    """
-    Simulate a Structural VAR(p) process and return the simulated objects.
-
-    The structural model is
-        B0 * y_t = sum_{i=1}^p Bi * y_{t-i} + ε_t,     ε_t ~ N(0, I),
-    where B0 is full rank. The routine draws random coefficient matrices,
-    rescales them to satisfy the requested stability radius, and simulates
-    (`burn_in` + `n_obs`) observations. The burn-in samples are discarded.
-
-    Args:
-        n_obs: Number of observations to keep after burn-in.
-        n_vars: Number of variables (dimension of y_t). Must match the size of
-            `structure` when one is supplied.
-        lag_order: VAR order p. Must be >= 1.
-        burn_in: Extra samples discarded to wash out initial conditions.
-        stability_radius: Maximum allowed spectral radius of the companion matrix.
-        shock_scale: Standard deviation of structural shocks.
-        seed: Optional random seed for reproducibility.
-        structure: Optional DAG describing contemporaneous edges. Accepts either
-            a networkx `DiGraph`/`StructureModel` or a square numpy array whose
-            (i, j) entry encodes the edge weight i -> j. When supplied, B0 is set
-            to `I - adjacency.T`, so parents affect their children
-            contemporaneously, and lag matrices are masked to respect those edges
-            (self-lags remain allowed).
-        node_order: Optional node ordering to use when `structure` is a graph.
-
-    Returns:
-        Dictionary with the simulated series and parameters:
-            data: np.ndarray of shape (n_obs, n_vars), the simulated y_t.
-            structural_shocks: np.ndarray of shape (n_obs, n_vars), ε_t.
-            reduced_form_shocks: np.ndarray of shape (n_obs, n_vars), u_t.
-            B0: np.ndarray (n_vars, n_vars), contemporaneous matrix.
-            B_lags: tuple of np.ndarray, structural lag matrices.
-            A_lags: tuple of np.ndarray, reduced-form lag matrices.
-            nodes: tuple giving the node ordering matching the arrays.
-    """
-    if n_obs <= 0:
-        raise ValueError("n_obs must be positive.")
-    if n_vars <= 0:
-        raise ValueError("n_vars must be positive.")
-    if lag_order <= 0:
-        raise ValueError("lag_order must be at least 1.")
-    if burn_in < 0:
-        raise ValueError("burn_in cannot be negative.")
-    if stability_radius <= 0:
-        raise ValueError("stability_radius must be positive.")
-    if shock_scale <= 0:
-        raise ValueError("shock_scale must be positive.")
-
-    rng = np.random.default_rng(seed)
-
-    adjacency: Optional[np.ndarray] = None
-    if structure is not None:
-        adjacency, nodes = _structure_to_adjacency(structure, node_order)
-        if adjacency.shape[0] != n_vars:
-            raise ValueError(
-                f"n_vars={n_vars} does not match structure size {adjacency.shape[0]}"
-            )
-        B0 = np.eye(n_vars) - adjacency.T
-    else:
-        nodes = tuple(range(n_vars))
-        tril_mask = np.tril(np.ones((n_vars, n_vars), dtype=bool))
-        B0 = rng.normal(loc=0.0, scale=0.3, size=(n_vars, n_vars))
-        B0[~tril_mask] = 0.0
-        np.fill_diagonal(B0, 1.0)
-
-    lag_mask = np.ones((n_vars, n_vars), dtype=bool)
-    if adjacency is not None:
-        lag_mask = adjacency.T != 0.0
-        np.fill_diagonal(lag_mask, True)
-
-    B_lags_list: List[np.ndarray] = []
-    for _ in range(lag_order):
-        lag = rng.normal(loc=0.0, scale=0.25, size=(n_vars, n_vars))
-        lag *= lag_mask
-        B_lags_list.append(lag)
-
-    A_lags_list: List[np.ndarray] = [
-        np.linalg.solve(B0, lag) for lag in B_lags_list
-    ]
-
-    companion_dim = n_vars * lag_order
-    companion = np.zeros((companion_dim, companion_dim))
-    for k, coeff in enumerate(A_lags_list):
-        start = k * n_vars
-        companion[:n_vars, start : start + n_vars] = coeff
-    if lag_order > 1:
-        companion[n_vars:, :-n_vars] = np.eye(n_vars * (lag_order - 1))
-
-    radius = max(np.abs(np.linalg.eigvals(companion)))
-    if radius >= stability_radius:
-        scale = stability_radius / (radius + 1e-12)
-        A_lags_list = [coeff * scale for coeff in A_lags_list]
-
-    A_lags = tuple(A_lags_list)
-    B_lags = tuple(B0 @ coeff for coeff in A_lags)
-
-    total_samples = n_obs + burn_in
-    eps = rng.normal(
-        loc=0.0, scale=shock_scale, size=(total_samples, n_vars)
-    )
-    u = np.linalg.solve(B0, eps.T).T
-
-    y = np.zeros((total_samples, n_vars))
-    for t in range(lag_order, total_samples):
-        state = np.zeros(n_vars)
-        for k, coeff in enumerate(A_lags, start=1):
-            state += coeff @ y[t - k]
-        y[t] = state + u[t]
-
-    keep_slice = slice(burn_in, None)
-    return {
-        "data": y[keep_slice],
-        "structural_shocks": eps[keep_slice],
-        "reduced_form_shocks": u[keep_slice],
-        "B0": B0,
-        "B_lags": B_lags,
-        "A_lags": A_lags,
-        "nodes": nodes,
-    }
-
-
 def plot_svar_structure(dag, A_lags, node_order=None, seed=0):
     if plt is None:
         print("matplotlib.pyplot is not installed. Skipping plot.")
@@ -417,7 +284,7 @@ def to_dag(W, thr=0.3):
 
     if is_dag(A):
         return A
-    
+
     nonzero_indices = np.where(A != 0)
     weight_indices_ls = list(zip(A[nonzero_indices],
                                  nonzero_indices[0],
@@ -429,3 +296,313 @@ def to_dag(W, thr=0.3):
         A[j, i] = 0
 
     return A
+
+
+# =============================================================================
+# SVAR data generation.
+#
+# Model: X_t = (I - B)^{-1} (sum_{k=1}^p A_k X_{t-k} + epsilon_t)
+# =============================================================================
+def generate_dag_structure(n_nodes: int, n_edges: int, seed: Optional[int] = None) -> np.ndarray:
+    """Random ER-style DAG with mixed-sign uniform weights on
+    [-2, -0.5] ∪ [0.5, 2.0]."""
+    rng = np.random.default_rng(seed=seed)
+    prob = float(n_edges * 2) / float(n_nodes ** 2 - n_nodes)
+    G = nx.erdos_renyi_graph(n_nodes, prob, seed=seed)
+    adj = nx.to_numpy_array(G)
+    U_mask = np.triu(adj, k=1)
+    P = np.eye(n_nodes)
+    P = P[:, rng.permutation(n_nodes)]
+    W = P @ U_mask @ P.T
+    W_weighted = np.zeros(W.shape)
+    S = rng.integers(2, size=W.shape)
+    for i, (low, high) in enumerate([(-2.0, -0.5), (0.5, 2.0)]):
+        weights = rng.uniform(low=low, high=high, size=W.shape)
+        W_weighted += W * (S == i) * weights
+    return W_weighted
+
+
+def generate_temporal_structure(n_nodes: int, lag_order: int, sparsity: float = 0.3,
+                                strength: float = 0.3, n_edges: Optional[int] = None,
+                                seed: Optional[int] = None) -> List[np.ndarray]:
+    """Build lag matrices A_1, ..., A_p. If `n_edges` is given, each
+    matrix has exactly that many non-zeros; otherwise the density is
+    set by `sparsity`. Earlier lags get stronger coefficients via a
+    0.7^k decay."""
+    rng = np.random.default_rng(seed=seed)
+    A_list = []
+    for k in range(lag_order):
+        A_k = np.zeros((n_nodes, n_nodes))
+        if n_edges is not None:
+            all_positions = [(i, j) for i in range(n_nodes) for j in range(n_nodes)]
+            selected = rng.choice(len(all_positions),
+                                  size=min(n_edges, len(all_positions)),
+                                  replace=False)
+            mask = np.zeros((n_nodes, n_nodes), dtype=bool)
+            for idx in selected:
+                i, j = all_positions[idx]
+                mask[i, j] = True
+        else:
+            mask = rng.random((n_nodes, n_nodes)) < sparsity
+        S = rng.integers(2, size=(n_nodes, n_nodes))
+        for i, (low, high) in enumerate([(-strength, -strength / 2),
+                                         (strength / 2, strength)]):
+            weights = rng.uniform(low=low, high=high, size=(n_nodes, n_nodes))
+            A_k += mask * (S == i) * weights
+        A_k = A_k * (0.7 ** k)
+        A_list.append(A_k)
+    return A_list
+
+
+def check_stability(A_list: List[np.ndarray], n_nodes: int,
+                    B: Optional[np.ndarray] = None) -> bool:
+    """Companion-matrix stability test for the SVAR
+
+        X_t = (I-B)^{-1} (sum_k A_k X_{t-k} + eps_t).
+
+    Evolution operator is C_k = (I-B)^{-1} A_k (no transpose — A acts
+    directly on x_{t-1}); the companion matrix built from {C_k} must
+    have spectral radius below the safety margin 0.95.
+    """
+    p = len(A_list)
+    if B is not None:
+        I = np.eye(n_nodes)
+        try:
+            B_inv = np.linalg.inv(I - B)
+            if np.max(np.abs(B_inv)) > 100:
+                return False
+            C_list = [B_inv @ A_k for A_k in A_list]
+        except np.linalg.LinAlgError:
+            return False
+    else:
+        C_list = A_list
+    companion = np.zeros((n_nodes * p, n_nodes * p))
+    for i, C_k in enumerate(C_list):
+        companion[:n_nodes, i * n_nodes:(i + 1) * n_nodes] = C_k
+    if p > 1:
+        companion[n_nodes:, :n_nodes * (p - 1)] = np.eye(n_nodes * (p - 1))
+    max_eigenvalue = np.max(np.abs(np.linalg.eigvals(companion)))
+    return max_eigenvalue < 0.95
+
+
+def simulate_svar(B: np.ndarray, A_list: List[np.ndarray], n_timesteps: int,
+                  noise_scale: float = 1.0, noise_type: str = 'ev',
+                  noise_scales: Optional[np.ndarray] = None, burnin: int = 500,
+                  seed: Optional[int] = None) -> Tuple[np.ndarray, np.ndarray]:
+    """Simulate one SVAR phase
+
+        X_t = (I-B)^{-1} (sum_k A_k X_{t-k} + epsilon_t).
+
+    Returns (X, sigma_true). For `noise_type='nv'`, `noise_scales` can
+    fix the per-node sigmas; if None they are drawn from
+    [0.5*noise_scale, 2.0*noise_scale].
+    """
+    rng = np.random.default_rng(seed=seed)
+    n_nodes = B.shape[0]
+    p = len(A_list)
+    I = np.eye(n_nodes)
+    try:
+        B_inv = np.linalg.inv(I - B)
+    except np.linalg.LinAlgError:
+        raise ValueError("(I - B) is singular! B must be a valid DAG structure.")
+    if noise_type == 'ev':
+        sigma_true = np.ones(n_nodes) * noise_scale
+    elif noise_type == 'nv':
+        if noise_scales is not None:
+            sigma_true = noise_scales
+        else:
+            sigma_true = rng.uniform(0.5 * noise_scale, 2.0 * noise_scale,
+                                     size=n_nodes)
+    else:
+        raise ValueError(f"noise_type must be 'ev' or 'nv', got '{noise_type}'")
+    total_timesteps = n_timesteps + burnin
+    X = np.zeros((total_timesteps, n_nodes))
+    for t in range(p, total_timesteps):
+        temporal_effect = np.zeros(n_nodes)
+        for k, A_k in enumerate(A_list):
+            temporal_effect += A_k @ X[t - k - 1]
+        epsilon_t = rng.normal(scale=sigma_true, size=n_nodes)
+        X[t] = B_inv @ (temporal_effect + epsilon_t)
+    return X[burnin:], sigma_true
+
+
+def generate_svar_data(n_nodes: int = 20, n_timesteps: int = 1000,
+                       lag_order: int = 2, instantaneous_edges: int = 30,
+                       temporal_sparsity: float = 0.3,
+                       temporal_edges: Optional[int] = None,
+                       temporal_strength: float = 0.3,
+                       noise_scale: float = 1.0, noise_type: str = 'ev',
+                       seed: Optional[int] = None,
+                       max_stability_attempts: int = 10
+                       ) -> Tuple[np.ndarray, np.ndarray, List[np.ndarray], Dict]:
+    """Sample a stable SVAR and simulate it.
+
+    Model:  X_t = (I - B)^{-1} ( sum_k A_k X_{t-k} + epsilon_t ).
+
+    Tries up to ``max_stability_attempts`` random (B, A_1..A_p) draws,
+    decaying ``temporal_strength`` by 0.8 each retry, until
+    :func:`check_stability` passes (companion spectral radius < 0.95).
+    Then simulates ``n_timesteps`` post-burn-in samples.
+
+    Returns
+    -------
+    X : (n_timesteps, n_nodes) array.
+    B : (n_nodes, n_nodes) contemporaneous DAG, mixed-sign weights in
+        [-2, -0.5] u [0.5, 2].
+    A_list : list of p lag matrices (n_nodes, n_nodes).
+    params : dict with realized edge counts, ``stability_attempts``,
+        ``actual_temporal_strength``, and ``sigma_true``.
+
+    Raises ``ValueError`` if no stable draw is found in the retry budget
+    — reduce ``temporal_strength`` or the edge density.
+
+    Convention: a row of ``X`` is one sample. The corresponding
+    DyCoLiDE / CoLiDE estimands are the transposes (``W = B^T``,
+    ``A_k_DyCoLiDE = A_k^T``).
+    """
+    stable = False
+    attempts = 0
+    while not stable and attempts < max_stability_attempts:
+        current_strength = temporal_strength * (0.8 ** attempts)
+        if seed is not None:
+            import random as _random
+            _random.seed(seed + attempts)
+            np.random.seed(seed + attempts)
+        B, _ = create_dag(n_nodes, 'er', instantaneous_edges, permute=True,
+                          edge_type='weighted',
+                          w_range=((-2.0, -0.5), (0.5, 2.0)))
+        A_list = generate_temporal_structure(
+            n_nodes, lag_order, sparsity=temporal_sparsity,
+            strength=current_strength, n_edges=temporal_edges,
+            seed=None if seed is None else seed + attempts + 1000)
+        stable = check_stability(A_list, n_nodes, B=B)
+        attempts += 1
+    if not stable:
+        raise ValueError(
+            f"Could not generate stable SVAR after {max_stability_attempts} "
+            f"attempts. Try reducing temporal_strength or temporal_sparsity.")
+    X, sigma_true = simulate_svar(B, A_list, n_timesteps,
+                                  noise_scale=noise_scale,
+                                  noise_type=noise_type,
+                                  seed=None if seed is None else seed + 1000)
+    A_edges_list = [int(np.sum(np.abs(A) > 0)) for A in A_list]
+    params = {
+        'n_nodes': n_nodes, 'n_timesteps': n_timesteps,
+        'lag_order': lag_order,
+        'instantaneous_edges': int(np.sum(np.abs(B) > 0)),
+        'temporal_sparsity': temporal_sparsity,
+        'temporal_edges': temporal_edges,
+        'temporal_strength': temporal_strength,
+        'noise_scale': noise_scale,
+        'actual_temporal_strength': current_strength,
+        'stability_attempts': attempts,
+        'B_edges': int(np.sum(np.abs(B) > 0)),
+        'A_edges_per_lag': A_edges_list,
+        'A_total_edges': sum(A_edges_list),
+        'A_avg_edges': float(np.mean(A_edges_list)),
+        'sigma_true': sigma_true,
+    }
+    return X, B, A_list, params
+
+
+def print_svar_summary(X: np.ndarray, B: np.ndarray,
+                       A_list: List[np.ndarray], params: Dict):
+    """Pretty-print structure/density/stability stats for a generated SVAR."""
+    print("=" * 80)
+    print(" SVAR DATA GENERATION SUMMARY")
+    print("=" * 80)
+    print(f"\nData Dimensions:")
+    print(f"  Time steps: {X.shape[0]}")
+    print(f"  Variables:  {X.shape[1]}")
+    print(f"  Lag order:  {len(A_list)}")
+    print(f"\nInstantaneous Structure (B):")
+    print(f"  Edges: {params['B_edges']}")
+    print(f"  Density: {params['B_edges'] / (X.shape[1] ** 2 - X.shape[1]):.3f}")
+    if params['B_edges']:
+        print(f"  Weight range: [{np.min(B[B != 0]):.3f}, "
+              f"{np.max(B[B != 0]):.3f}]")
+    print(f"\nTemporal Structures (A_k):")
+    for k, A_k in enumerate(A_list):
+        n_edges = int(np.sum(np.abs(A_k) > 0))
+        if n_edges > 0:
+            wr = f"[{np.min(A_k[A_k != 0]):.3f}, {np.max(A_k[A_k != 0]):.3f}]"
+        else:
+            wr = "[N/A]"
+        print(f"  A_{k + 1}: {n_edges} edges, weights {wr}")
+    print(f"\nData Statistics:")
+    print(f"  Mean: {np.mean(X):.4f}")
+    print(f"  Std:  {np.std(X):.4f}")
+    print(f"  Min:  {np.min(X):.4f}")
+    print(f"  Max:  {np.max(X):.4f}")
+    print(f"\nStability:")
+    print(f"  Attempts to generate stable VAR: {params['stability_attempts']}")
+    print(f"  Final temporal strength: "
+          f"{params['actual_temporal_strength']:.4f}")
+    print("=" * 80)
+
+# =============================================================================
+# SVAR accuracy metric (W- and A-side TPR / FDR / SHD).
+# =============================================================================
+def count_accuracy_svar(W_true: np.ndarray, W_est: np.ndarray,
+                        A_true: np.ndarray = None, A_est: np.ndarray = None,
+                        threshold: float = 0.3) -> dict:
+    """
+    Compute accuracy metrics for SVAR estimation.
+
+    Parameters
+    ----------
+    W_true, W_est : np.ndarray
+        True and estimated intra-slice (contemporaneous) DAG
+    A_true, A_est : np.ndarray, optional
+        True and estimated inter-slice (temporal) weights
+    threshold : float
+        Threshold for binarizing estimated weights
+
+    Returns
+    -------
+    metrics : dict
+        Dictionary with TPR, FDR, SHD for both W and A
+    """
+    # Binarize
+    W_true_bin = (np.abs(W_true) > 0).astype(int)
+    W_est_bin = (np.abs(W_est) > threshold).astype(int)
+
+    # Metrics for W (intra-slice)
+    TP_W = np.sum(W_true_bin * W_est_bin)
+    FP_W = np.sum(W_est_bin * (1 - W_true_bin))
+    FN_W = np.sum((1 - W_est_bin) * W_true_bin)
+
+    tpr_W = TP_W / max(TP_W + FN_W, 1)
+    fdr_W = FP_W / max(TP_W + FP_W, 1)
+    shd_W = FP_W + FN_W
+
+    metrics = {
+        'W_tpr': tpr_W,
+        'W_fdr': fdr_W,
+        'W_shd': shd_W,
+        'W_edges_true': int(np.sum(W_true_bin)),
+        'W_edges_est': int(np.sum(W_est_bin))
+    }
+
+    # Metrics for A (inter-slice) if provided
+    if A_true is not None and A_est is not None:
+        A_true_bin = (np.abs(A_true) > 0).astype(int)
+        A_est_bin = (np.abs(A_est) > threshold).astype(int)
+
+        TP_A = np.sum(A_true_bin * A_est_bin)
+        FP_A = np.sum(A_est_bin * (1 - A_true_bin))
+        FN_A = np.sum((1 - A_est_bin) * A_true_bin)
+
+        tpr_A = TP_A / max(TP_A + FN_A, 1)
+        fdr_A = FP_A / max(TP_A + FP_A, 1)
+        shd_A = FP_A + FN_A
+
+        metrics.update({
+            'A_tpr': tpr_A,
+            'A_fdr': fdr_A,
+            'A_shd': shd_A,
+            'A_edges_true': int(np.sum(A_true_bin)),
+            'A_edges_est': int(np.sum(A_est_bin))
+        })
+
+    return metrics

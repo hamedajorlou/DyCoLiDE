@@ -1,0 +1,8 @@
+==============================================================================
+HEADLINE (Gaussian ER4, EV sigma=5.0, d=40, 5 seeds, median)
+==============================================================================
+Method          W SHD    A SHD    W NMSE    A NMSE   time(s)
+DyCoLiDE          nan      nan       nan       nan       nan
+DyDAGMA           nan      nan       nan       nan       nan
+DYNOTEARS         nan      nan       nan       nan       nan
+VARLiNGAM         nan      nan       nan       nan       nan

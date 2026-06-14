@@ -13,7 +13,7 @@ import time
 sys.path.insert(0, '/Users/hamedajorlou/Documents/Dynotears/dagma/src/dagma')
 
 from Utils import simulate_sem, count_accuracy
-from Colide import colide_ev as StaticCoLiDE
+from SEM.dycolide import colide_ev as StaticCoLiDE
 from Colide_batch_MOHEM import colide_ev_batch as DyCoLiDE
 
 # Generate data once

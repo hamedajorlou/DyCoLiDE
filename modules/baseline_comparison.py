@@ -61,7 +61,7 @@ except ImportError:
     AVAILABLE_METHODS['DirectLiNGAM'] = False
 
 # CoLiDE (always available - local)
-from Colide import colide_ev as StaticCoLiDE
+from SEM.dycolide import colide_ev as StaticCoLiDE
 AVAILABLE_METHODS['CoLiDE'] = True
 
 # DyCoLiDE (our batch/online implementation)

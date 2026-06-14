@@ -5,8 +5,9 @@ Compares BatchStreaming vs standard DyCoLiDE_EV across 100 random seeds.
 """
 
 import numpy as np
-from SVAR_data_generator import generate_svar_data
-from DyCoLiDE import DyCoLiDE_BatchStreaming, DyCoLiDE_EV, count_accuracy_svar
+from Utils import generate_svar_data
+from SVAR.dycolide import DyCoLiDE_EV  # DyCoLiDE_BatchStreaming removed
+from Utils import count_accuracy_svar
 
 
 def run_single_experiment(seed, n_nodes=30, n_timesteps=1000, lag_order=1,

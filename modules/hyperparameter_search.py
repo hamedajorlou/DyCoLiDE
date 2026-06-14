@@ -10,8 +10,9 @@ warnings.filterwarnings("ignore")
 import numpy as np
 import time
 from itertools import product
-from DyCoLiDE import DyCoLiDE_EV, count_accuracy_svar
-from SVAR_data_generator import generate_svar_data
+from SVAR.dycolide import DyCoLiDE_EV
+from Utils import count_accuracy_svar
+from Utils import generate_svar_data
 
 def compute_f1(tpr, fdr):
     """Compute F1 score from TPR and FDR."""

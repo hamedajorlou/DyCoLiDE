@@ -18,8 +18,7 @@ env/
 # Data
 data/
 
-# Result images
-*.png
+# Result figures are committed (do NOT ignore *.png)
 
 # Claude Code local config
 .claude/
@@ -34,4 +33,6 @@ Thumbs.db
 J-PCMCIplus/
 dagma/
 golem/
-nas/darts/
+tigramite_repo/
+causalnex/
+SpinSVAR/

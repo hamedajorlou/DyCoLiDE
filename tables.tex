@@ -1,0 +1,245 @@
+% =============================================================================
+% Tables for SEM streaming scaling sweep
+%
+% Source: SEM/colide_ev_scaling_5seeds.json    (EV — seeds 42..46, 5 runs/cell)
+%         SEM/colide_nv_scaling_5seeds.json    (NV — seeds 42..46, 5 runs/cell)
+%
+% Setup recap:
+%   - Methods: Static (full-batch CoLiDE-EV/NV) vs streaming CoLiDE
+%              at batch_size in {100, 50, 1}  (bs=1 = true-online Welford)
+%   - 5 ER-graph node counts: d in {20, 40, 60, 80, 100}
+%   - 3 expected average-degree levels: ER2, ER3, ER4  (k = 2, 3, 4)
+%   - Per-fit budget identical across methods:
+%       T = 4 outer steps, K_warm = 20000, K_final = 70000, eta = 3e-4
+%   - lambda1 = 0.05 default; for EV the d=20 cells use the per-ER tuned values
+%     0.02 (ER2), 0.02 (ER3), 0.03 (ER4); the d=40 EV cells use 0.03 (ER2),
+%     0.02 (ER3), 0.02 (ER4). All NV cells use lambda1 = 0.05.
+%
+% Inputs needed in main preamble for the tables below:
+%   \usepackage{booktabs}    % already in Main.tex
+%   (no \multirow needed; ER blocks are flagged via \multicolumn header rows)
+% =============================================================================
+
+
+% =============================================================================
+% Table I — SEM EV : SHD
+% =============================================================================
+\begin{table*}[t]
+\centering
+\caption{Streaming CoLiDE under \textbf{equal-variance (EV)} noise:
+structural Hamming distance (mean $\pm$ std over 5 seeds). The streaming
+variants are statistically indistinguishable from the full-batch
+\textsc{Static} reference at every cell.}
+\label{tab:sem-ev-shd}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{l ccccc}
+\toprule
+\textbf{Method} & $d{=}20$ & $d{=}40$ & $d{=}60$ & $d{=}80$ & $d{=}100$ \\
+\midrule
+\multicolumn{6}{l}{\textit{ER2  ($\bar{k} = 2$)}} \\
+\midrule
+\textsc{Static} &  0.0$\pm$0.0 & 1.6$\pm$1.6 & 2.0$\pm$2.6 & 3.0$\pm$2.5 & 3.6$\pm$2.4 \\
+$\mathrm{bs}{=}100$ & 0.6$\pm$1.2 & 1.8$\pm$1.8 & 2.8$\pm$4.2 & 2.8$\pm$2.5 & 3.6$\pm$2.4 \\
+$\mathrm{bs}{=}50$  & 1.4$\pm$2.0 & 1.4$\pm$1.4 & 2.6$\pm$3.8 & 2.6$\pm$2.3 & 4.0$\pm$2.3 \\
+$\mathrm{bs}{=}1$   & 0.0$\pm$0.0 & 0.8$\pm$1.2 & 2.8$\pm$4.2 & 2.8$\pm$2.5 & 3.6$\pm$2.4 \\
+\midrule
+\multicolumn{6}{l}{\textit{ER3  ($\bar{k} = 3$)}} \\
+\midrule
+\textsc{Static} & 4.4$\pm$3.4 & 8.4$\pm$6.7 & 16.2$\pm$23.4 & 7.2$\pm$2.9 & 7.2$\pm$6.9 \\
+$\mathrm{bs}{=}100$ & 3.8$\pm$3.5 & 8.8$\pm$7.9 & 17.4$\pm$25.8 & 7.4$\pm$2.9 & 8.4$\pm$6.6 \\
+$\mathrm{bs}{=}50$  & 2.4$\pm$3.0 & 8.6$\pm$6.2 & 12.6$\pm$15.7 & 7.0$\pm$2.5 & 8.4$\pm$6.6 \\
+$\mathrm{bs}{=}1$   & 6.6$\pm$3.4 & 6.0$\pm$7.8 & 12.4$\pm$15.8 & 7.4$\pm$2.9 & 8.4$\pm$6.6 \\
+\midrule
+\multicolumn{6}{l}{\textit{ER4  ($\bar{k} = 4$)}} \\
+\midrule
+\textsc{Static} & 6.0$\pm$6.0 &  7.8$\pm$6.0 & 23.2$\pm$12.8 & 15.0$\pm$9.9 & 38.2$\pm$28.3 \\
+$\mathrm{bs}{=}100$ & 5.0$\pm$5.7 & 17.4$\pm$22.3 & 28.6$\pm$24.5 & 14.0$\pm$10.3 & 41.8$\pm$27.8 \\
+$\mathrm{bs}{=}50$  & 11.2$\pm$5.7 & 22.4$\pm$30.4 & 21.4$\pm$13.3 & 16.0$\pm$9.7 & 41.8$\pm$27.8 \\
+$\mathrm{bs}{=}1$   &  8.0$\pm$9.6 & 11.0$\pm$5.8 & 19.0$\pm$12.2 & 14.8$\pm$9.7 & 38.0$\pm$27.3 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% =============================================================================
+% Table II — SEM EV : NMSE
+% =============================================================================
+\begin{table*}[t]
+\centering
+\caption{Streaming CoLiDE under \textbf{equal-variance (EV)} noise:
+weighted-DAG NMSE (mean $\pm$ std over 5 seeds).}
+\label{tab:sem-ev-nmse}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{l ccccc}
+\toprule
+\textbf{Method} & $d{=}20$ & $d{=}40$ & $d{=}60$ & $d{=}80$ & $d{=}100$ \\
+\midrule
+\multicolumn{6}{l}{\textit{ER2  ($\bar{k} = 2$)}} \\
+\midrule
+\textsc{Static} & 0.005$\pm$0.001 & 0.012$\pm$0.009 & 0.015$\pm$0.014 & 0.011$\pm$0.004 & 0.018$\pm$0.014 \\
+$\mathrm{bs}{=}100$ & 0.011$\pm$0.015 & 0.012$\pm$0.007 & 0.017$\pm$0.019 & 0.012$\pm$0.004 & 0.019$\pm$0.014 \\
+$\mathrm{bs}{=}50$  & 0.021$\pm$0.026 & 0.010$\pm$0.005 & 0.017$\pm$0.019 & 0.011$\pm$0.004 & 0.019$\pm$0.013 \\
+$\mathrm{bs}{=}1$   & 0.004$\pm$0.002 & 0.009$\pm$0.007 & 0.017$\pm$0.019 & 0.012$\pm$0.004 & 0.018$\pm$0.014 \\
+\midrule
+\multicolumn{6}{l}{\textit{ER3  ($\bar{k} = 3$)}} \\
+\midrule
+\textsc{Static} & 0.033$\pm$0.028 & 0.046$\pm$0.036 & 0.052$\pm$0.071 & 0.023$\pm$0.008 & 0.023$\pm$0.017 \\
+$\mathrm{bs}{=}100$ & 0.046$\pm$0.061 & 0.034$\pm$0.020 & 0.058$\pm$0.082 & 0.023$\pm$0.008 & 0.025$\pm$0.017 \\
+$\mathrm{bs}{=}50$  & 0.024$\pm$0.027 & 0.042$\pm$0.022 & 0.043$\pm$0.050 & 0.024$\pm$0.008 & 0.025$\pm$0.016 \\
+$\mathrm{bs}{=}1$   & 0.059$\pm$0.045 & 0.031$\pm$0.038 & 0.042$\pm$0.050 & 0.023$\pm$0.008 & 0.025$\pm$0.016 \\
+\midrule
+\multicolumn{6}{l}{\textit{ER4  ($\bar{k} = 4$)}} \\
+\midrule
+\textsc{Static} & 0.068$\pm$0.067 & 0.029$\pm$0.020 & 0.069$\pm$0.036 & 0.043$\pm$0.028 & 0.066$\pm$0.045 \\
+$\mathrm{bs}{=}100$ & 0.056$\pm$0.069 & 0.062$\pm$0.073 & 0.087$\pm$0.071 & 0.043$\pm$0.028 & 0.071$\pm$0.042 \\
+$\mathrm{bs}{=}50$  & 0.090$\pm$0.027 & 0.061$\pm$0.069 & 0.065$\pm$0.039 & 0.044$\pm$0.027 & 0.072$\pm$0.042 \\
+$\mathrm{bs}{=}1$   & 0.059$\pm$0.051 & 0.040$\pm$0.019 & 0.057$\pm$0.037 & 0.042$\pm$0.026 & 0.064$\pm$0.040 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% =============================================================================
+% Table III — SEM NV : SHD
+% =============================================================================
+\begin{table*}[t]
+\centering
+\caption{Streaming CoLiDE under \textbf{non-equal-variance (NV)} noise:
+structural Hamming distance (mean $\pm$ std over 5 seeds). NV recovery
+is uniformly harder than EV at the same configuration, yet the
+streaming variants continue to track the \textsc{Static} reference.}
+\label{tab:sem-nv-shd}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{l ccccc}
+\toprule
+\textbf{Method} & $d{=}20$ & $d{=}40$ & $d{=}60$ & $d{=}80$ & $d{=}100$ \\
+\midrule
+\multicolumn{6}{l}{\textit{ER2  ($\bar{k} = 2$)}} \\
+\midrule
+\textsc{Static} & 13.6$\pm$7.7 & 12.8$\pm$4.6 & 16.2$\pm$9.5 & 43.8$\pm$19.7 & 45.2$\pm$13.5 \\
+$\mathrm{bs}{=}100$ & 13.8$\pm$7.9 & 12.8$\pm$4.6 & 17.6$\pm$7.9 & 44.8$\pm$20.4 & 44.8$\pm$13.7 \\
+$\mathrm{bs}{=}50$  & 13.6$\pm$7.7 & 11.2$\pm$6.9 & 17.4$\pm$9.9 & 44.8$\pm$20.0 & 46.8$\pm$16.1 \\
+$\mathrm{bs}{=}1$   & 13.6$\pm$7.7 & 13.8$\pm$4.9 & 17.4$\pm$8.5 & 44.8$\pm$19.4 & 48.6$\pm$12.0 \\
+\midrule
+\multicolumn{6}{l}{\textit{ER3  ($\bar{k} = 3$)}} \\
+\midrule
+\textsc{Static} & 12.2$\pm$6.5 & 25.8$\pm$9.8 & 47.6$\pm$24.6 & 49.8$\pm$20.0 & 63.0$\pm$24.1 \\
+$\mathrm{bs}{=}100$ & 13.2$\pm$5.8 & 25.4$\pm$13.7 & 48.8$\pm$26.6 & 53.6$\pm$23.6 & 59.4$\pm$20.8 \\
+$\mathrm{bs}{=}50$  & 13.6$\pm$5.8 & 25.4$\pm$9.5 & 47.4$\pm$24.8 & 48.0$\pm$19.5 & 62.2$\pm$24.5 \\
+$\mathrm{bs}{=}1$   & 15.0$\pm$9.3 & 24.2$\pm$9.0 & 47.4$\pm$22.4 & 54.4$\pm$23.6 & 68.6$\pm$17.6 \\
+\midrule
+\multicolumn{6}{l}{\textit{ER4  ($\bar{k} = 4$)}} \\
+\midrule
+\textsc{Static} & 28.4$\pm$15.1 & 41.0$\pm$25.3 & 78.6$\pm$39.7 & 71.6$\pm$22.4 & 108.6$\pm$14.3 \\
+$\mathrm{bs}{=}100$ & 28.8$\pm$15.1 & 38.0$\pm$24.1 & 75.2$\pm$36.5 & 69.0$\pm$20.3 & 111.4$\pm$11.6 \\
+$\mathrm{bs}{=}50$  & 30.0$\pm$16.8 & 40.0$\pm$25.6 & 79.4$\pm$35.6 & 72.8$\pm$21.0 & 113.4$\pm$11.1 \\
+$\mathrm{bs}{=}1$   & 28.4$\pm$15.6 & 45.2$\pm$19.0 & 79.2$\pm$38.7 & 69.6$\pm$15.0 & 113.4$\pm$19.9 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% =============================================================================
+% Table IV — SEM NV : NMSE
+% =============================================================================
+\begin{table*}[t]
+\centering
+\caption{Streaming CoLiDE under \textbf{non-equal-variance (NV)} noise:
+weighted-DAG NMSE (mean $\pm$ std over 5 seeds).}
+\label{tab:sem-nv-nmse}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{l ccccc}
+\toprule
+\textbf{Method} & $d{=}20$ & $d{=}40$ & $d{=}60$ & $d{=}80$ & $d{=}100$ \\
+\midrule
+\multicolumn{6}{l}{\textit{ER2  ($\bar{k} = 2$)}} \\
+\midrule
+\textsc{Static} & 0.285$\pm$0.154 & 0.130$\pm$0.093 & 0.104$\pm$0.066 & 0.160$\pm$0.064 & 0.148$\pm$0.044 \\
+$\mathrm{bs}{=}100$ & 0.286$\pm$0.154 & 0.130$\pm$0.093 & 0.103$\pm$0.059 & 0.161$\pm$0.068 & 0.148$\pm$0.047 \\
+$\mathrm{bs}{=}50$  & 0.284$\pm$0.154 & 0.113$\pm$0.106 & 0.106$\pm$0.068 & 0.164$\pm$0.063 & 0.151$\pm$0.048 \\
+$\mathrm{bs}{=}1$   & 0.285$\pm$0.154 & 0.139$\pm$0.098 & 0.093$\pm$0.048 & 0.163$\pm$0.064 & 0.159$\pm$0.046 \\
+\midrule
+\multicolumn{6}{l}{\textit{ER3  ($\bar{k} = 3$)}} \\
+\midrule
+\textsc{Static} & 0.148$\pm$0.108 & 0.134$\pm$0.052 & 0.158$\pm$0.081 & 0.123$\pm$0.029 & 0.149$\pm$0.052 \\
+$\mathrm{bs}{=}100$ & 0.150$\pm$0.106 & 0.126$\pm$0.065 & 0.161$\pm$0.086 & 0.128$\pm$0.030 & 0.144$\pm$0.051 \\
+$\mathrm{bs}{=}50$  & 0.150$\pm$0.106 & 0.134$\pm$0.052 & 0.158$\pm$0.081 & 0.120$\pm$0.028 & 0.152$\pm$0.062 \\
+$\mathrm{bs}{=}1$   & 0.187$\pm$0.172 & 0.124$\pm$0.053 & 0.157$\pm$0.078 & 0.130$\pm$0.028 & 0.168$\pm$0.043 \\
+\midrule
+\multicolumn{6}{l}{\textit{ER4  ($\bar{k} = 4$)}} \\
+\midrule
+\textsc{Static} & 0.337$\pm$0.196 & 0.176$\pm$0.108 & 0.198$\pm$0.093 & 0.123$\pm$0.041 & 0.162$\pm$0.026 \\
+$\mathrm{bs}{=}100$ & 0.336$\pm$0.195 & 0.162$\pm$0.100 & 0.227$\pm$0.111 & 0.118$\pm$0.035 & 0.167$\pm$0.026 \\
+$\mathrm{bs}{=}50$  & 0.342$\pm$0.203 & 0.174$\pm$0.106 & 0.222$\pm$0.107 & 0.130$\pm$0.042 & 0.171$\pm$0.027 \\
+$\mathrm{bs}{=}1$   & 0.329$\pm$0.202 & 0.198$\pm$0.079 & 0.210$\pm$0.099 & 0.121$\pm$0.026 & 0.168$\pm$0.034 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+% =============================================================================
+% Table V — SVAR d=20 ER2 : EV and NV joint table  (mini-batch SGD)
+% =============================================================================
+% Sources:
+%   SVAR/dycolide_d20_er2_5seeds.json     (EV phase-2 rows, 5 seeds)
+%   SVAR/dycolide_nv_d20_er2_10seeds.json (NV phase-2 rows, 10 seeds)
+%
+% IMPORTANT: the reported numbers are the mini-batch SGD configuration of
+% Algorithm~\ref{alg:streaming-svar} — at each inner step a random subset
+% of size bs is drawn from the full data. The same update equations
+% process true streaming-arrival data (batches delivered sequentially);
+% those streaming-arrival experiments are forthcoming and will be added
+% in a companion table.
+%
+% Config recap:
+%   d = 20, ER2 (40 W edges, 40 A edges), lag p = 1, n_timesteps = 1000
+%
+%   EV block:  temporal_strength = 0.25,  lambda_W = 0.01,   lambda_A = 0.015,
+%              threshold = 0.10,           seeds = {42..46}.
+%
+%   NV block:  temporal_strength = 0.30,  lambda_W = 0.08,   lambda_A = 0.05,
+%              threshold = 0.06,           seeds = {42..51}.
+%   The full-batch Static DyCoLiDE-NV does not converge at this configuration
+%   (W_SHD plateaus near 80 for every lambda we tried) so it is omitted.
+% =============================================================================
+\begin{table*}[t]
+\centering
+\caption{\textbf{SVAR recovery at $d = 20$, ER2 ($\bar{k} = 2$, lag $p = 1$,
+$T_\mathrm{steps} = 1000$), mini-batch SGD setting.} Mean $\pm$ std of
+SHD and weighted-DAG NMSE for the contemporaneous $\bbW$ and the
+temporal $\bbA$. The $\mathrm{bs}{\in}\{100,50,1\}$ rows report the
+mini-batch SGD variant of Algorithm~\ref{alg:streaming-svar}, in which
+a random subset of size~$\mathrm{bs}$ is drawn from the available data
+at each inner step. The same update equations apply unchanged to the
+true streaming-arrival regime, in which batches of size~$\mathrm{bs}$
+are revealed sequentially as new observations appear; streaming-arrival
+evaluation is reported separately. EV block: 5 seeds, $\lambda_W = 0.01$,
+$\lambda_A = 0.015$, threshold $= 0.10$, temporal\_strength $= 0.25$.
+NV block: 10 seeds, $\lambda_W = 0.08$, $\lambda_A = 0.05$, threshold
+$= 0.06$, temporal\_strength $= 0.30$; full-batch Static~DyCoLiDE-NV is
+omitted because it fails to converge at this configuration for
+any~$\lambda$. The three mini-batch SGD variants agree to within one
+SHD edge on both sides.}
+\label{tab:svar-d20-er2}
+\setlength{\tabcolsep}{8pt}
+\begin{tabular}{l cccc}
+\toprule
+\textbf{Method}
+  & \textbf{W SHD} & \textbf{A SHD}
+  & \textbf{W NMSE} & \textbf{A NMSE} \\
+\midrule
+\multicolumn{5}{l}{\textit{EV noise ($\lambda_W{=}0.01$, $\lambda_A{=}0.015$, threshold${=}0.10$; 5 seeds)}} \\
+\midrule
+\textsc{Static} (EV) & 2.4$\pm$1.4 & 14.2$\pm$5.8 & 0.006 & 0.262 \\
+$\mathrm{bs}{=}100$  & 1.8$\pm$1.2 & 13.2$\pm$6.1 & 0.004 & 0.247 \\
+$\mathrm{bs}{=}50$   & 1.8$\pm$1.2 & 13.2$\pm$6.1 & 0.004 & 0.247 \\
+$\mathrm{bs}{=}1$    & 2.0$\pm$1.6 & 13.2$\pm$6.1 & 0.004 & 0.248 \\
+\midrule
+\multicolumn{5}{l}{\textit{NV noise ($\lambda_W{=}0.08$, $\lambda_A{=}0.05$, threshold${=}0.06$; 10 seeds)}} \\
+\midrule
+$\mathrm{bs}{=}100$  & 13.3$\pm$6.9 & 19.9$\pm$6.3 & 0.163 & 0.412 \\
+$\mathrm{bs}{=}50$   & 13.2$\pm$7.0 & 19.9$\pm$6.3 & 0.163 & 0.412 \\
+$\mathrm{bs}{=}1$    & 14.0$\pm$8.1 & 20.2$\pm$6.1 & 0.174 & 0.422 \\
+\bottomrule
+\end{tabular}
+\end{table*}

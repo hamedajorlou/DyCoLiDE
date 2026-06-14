@@ -118,8 +118,8 @@ def run_pcmci_on_svar(X, p=1, pc_alpha=0.05, seed=42):
 
 if __name__ == "__main__":
     # Quick test
-    from SVAR_data_generator import generate_svar_data
-    from DyCoLiDE import count_accuracy_svar
+    from Utils import generate_svar_data
+    from Utils import count_accuracy_svar
 
     print("Testing PCMCI+ wrapper...")
 

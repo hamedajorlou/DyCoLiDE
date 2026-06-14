@@ -4,7 +4,7 @@ Test script comparing Batch vs Online CoLiDE-EV on SEM data.
 
 import numpy as np
 import time
-from Colide import colide_ev_batch
+from SEM.dycolide import colide_ev_batch
 from Utils import  count_accuracy
 from Utils import simulate_sem
 

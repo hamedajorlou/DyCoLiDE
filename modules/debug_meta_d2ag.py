@@ -5,8 +5,8 @@ Debug script for Meta-D2AG to understand why it's performing poorly.
 import numpy as np
 import torch
 from meta_d2ag import MetaD2AG, compute_dag_constraint_logdet
-from SVAR_data_generator import generate_svar_data
-from DyCoLiDE import count_accuracy_svar
+from Utils import generate_svar_data
+from Utils import count_accuracy_svar
 
 def compute_f1(tpr, fdr):
     precision = 1 - fdr

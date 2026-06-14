@@ -188,7 +188,7 @@ def count_accuracy(W_true, W_est, threshold=0.0):
 
 if __name__ == "__main__":
     # Quick test
-    from SVAR_data_generator import generate_svar_data
+    from Utils import generate_svar_data
 
     print("Testing Meta-D2AG...")
 
